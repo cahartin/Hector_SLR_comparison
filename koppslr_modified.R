@@ -84,7 +84,9 @@ tempscen$sealevel <- sealevelcalc(bscalar, tempscen$equiltemp, tempscen$phi,
                                       tempscen$temperature) 
 
 
-# Read in historical observations
+
+#################
+#Read in historical observations (mm)
 
 obs <- read.csv("CSIRO_Recons_gmsl_yr_2015.csv", sep = ",") %>% 
   rename("SLR" = "GMSL..mm.") %>% 
@@ -97,26 +99,40 @@ semi_emp <- rename(tempscen, "SLR" = "sealevel") %>% # so we can match observati
   mutate(run_name = "semi-empirical") %>% 
   select(year, SLR, run_name)
 
-df1 <- full_join(obs, semi_emp)
+#average SLR from 1990 as a baseline
+avg <- as.numeric(summarise(filter(semi_emp, year %in% 1990), SLR = mean(SLR)))
+SM <- mutate(semi_emp, SLR = SLR - avg)
+
+# join together observations and semi_empirical data
+df1 <- full_join(obs, SM)
 
 
 # Import Hector data for comparison
-# cm units
+# cm units convert to mm
 
 rcp26 <- read.csv("sample_outputstream_rcp26.csv", sep = ",", skip = 1) %>%
   select(-component) %>% 
   filter(year > 1849) %>% 
   filter(variable == "slr") %>% 
-  rename("SLR" = "value")
+  rename("SLR" = "value") %>% 
+  mutate(SLR = SLR*10) #convert to mm
 
-df2 <- full_join(df1, rcp26) 
+#average SLR from 1990 as a baseline
+avg <- as.numeric(summarise(filter(rcp26, year %in% 1990), SLR = mean(SLR)))
+hector <- mutate(rcp26, SLR = SLR - avg)
+
+
+###### join in the dataframes (semi-emp, hector, observations)
+df2 <- full_join(df1, hector) %>% 
+  select(-variable, -spinup, -units)
 
 ggplot(df2, aes(x=year, y=SLR, color = run_name)) + 
   geom_line() +
   geom_point()+
   geom_errorbar(aes(ymin=SLR-Error, ymax=SLR+Error)) +
   xlim(1850,2110)+
-  ylim(-250,250)
+  ylim(-250,250)+
+  ggtitle("SLR relative to 1990 in mm")
   #geom_segment(aes(x = 2100, y = .55, xend = 2100, yend = 0.85), color = "blue") +
   #geom_segment(aes(x = 2105, y = .8, xend = 2105, yend = 1.25), color = "red") 
 
