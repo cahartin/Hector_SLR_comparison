@@ -1,0 +1,146 @@
+---
+title: "Hector_SLR_comparison"
+author: "CH"
+date: "3/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(dplyr)
+```
+### Problem - 
+
+where are we getting SLR estimates from for the TD?  I dropped the ball in thinking about SLR estimates.  I was under the impression that IEc was going to have them but never thought of where we would get them from. IEc decided not to be linked to 1 model (i.e. BRICK) and so they rebinned their damages based on SLR. So now we need trajectories of SLR. 
+
+Can we simply use Hector's SLR estimates instead of getting BRICK up and running for the TD? I recall Hector's SLR pretty outdated. is it?  
+
+### Compare Hector's SLR output with observations and IPCC projections.
+
+Hector uses a simple relationship between temperature to global mean sea level rise.
+
+Martin Vermeer and Stefan Rahmstorf  
+PNAS December 22, 2009 106 (51) 21527-21532;  
+https://doi.org/10.1073/pnas.0907765106  
+
+How well does this compare to observations and to IPCC projections?
+
+Start with comparison to observations. Observations run out to 2013. (RCPs shift to future in 2006) 
+
+Church and White observations relative to 1990
+
+```{r, echo=FALSE, fig.width=6, fig.height=3, warning=FALSE, message=FALSE, include = FALSE}
+setwd("C:/Users/chartin/OneDrive - Environmental Protection Agency (EPA)/Documents/GitHub/Hector_SLR_comparison/")
+
+obs <- read.csv("CSIRO_Recons_gmsl_yr_2015.csv", sep = ",") %>% 
+  rename("SLR" = "GMSL..mm.") %>% 
+  rename("Error" = "GMSL.uncertainty..mm.") %>% 
+  rename("year" = "Time") %>% 
+  mutate(run_name = "observations")
+
+ggplot(obs, aes(x=year, y=SLR)) + 
+  geom_line() +
+  geom_point()+
+  geom_errorbar(aes(ymin=SLR-Error, ymax=SLR+Error))
+
+```
+
+```{r, echo=FALSE, fig.width=6, fig.height=3, warning=FALSE, message=FALSE}
+#Import Hector data
+
+rcp26 <- read.csv("sample_outputstream_rcp26.csv", sep = ",", skip = 1) %>%
+  select(-component) %>% 
+  filter(year > 1849) %>% 
+  filter(variable == "slr") 
+  
+rcp45 <- read.csv("sample_outputstream_rcp45.csv", sep = ",", skip = 1) %>%
+  select(-component) %>% 
+  filter(year > 1849) %>% 
+  filter(variable == "slr")
+
+rcp60 <- read.csv("sample_outputstream_rcp60.csv", sep = ",", skip = 1) %>%
+  select(-component) %>% 
+  filter(year > 1849) %>% 
+  filter(variable == "slr") 
+
+rcp85 <- read.csv("sample_outputstream_rcp85.csv", sep = ",", skip = 1) %>%
+  select(-component) %>% 
+  filter(year > 1849) %>% 
+  filter(variable == "slr") 
+
+df <- rbind(rcp26, rcp45, rcp60, rcp85) %>% 
+  mutate(slr_mm = value*10) %>% 
+  filter(year < 2101) %>% 
+  filter(year > 1849)
+
+  avg <- as.numeric(summarise(filter(df, year %in% 1990), SLR = mean(slr_mm)))
+  
+
+df <- mutate(df, SLR = slr_mm - avg)
+```
+
+### Plot up observations and RCPs
+
+```{r,echo=FALSE, fig.width=6, fig.height=3, warning=FALSE, message=FALSE}
+#merge obs with df
+
+df2 <- full_join(df, obs)
+ 
+ggplot(df2, aes(x=year, y=SLR, color = run_name)) + 
+  geom_line() +
+  geom_point()+
+  geom_errorbar(aes(ymin=SLR-Error, ymax=SLR+Error)) +
+  xlim(1850,2015)+
+  ylim(-250,250)
+```
+
+### Comparison to figure in IPCC AR5 WGI_AR5_Fig13-27
+```{r, echo=FALSE, out.width="400px"}
+knitr::include_graphics('C:/Users/chartin/OneDrive - Environmental Protection Agency (EPA)/Documents/Github/Hector_SLR_comparison/WGI_AR5_Fig13-27.jpg')
+```
+
+```{r,echo=FALSE, fig.width=6, fig.height=3, warning=FALSE, message=FALSE}
+# I need to pull out the the average SLR in m between 1985-2005
+# to compare to IPCC figure SPM.6
+
+# compute SLR in m
+
+df3 <- mutate(df2, SLR_m = slr_mm/1000)
+
+# compute average SLR 1850-2005s
+avg <- as.numeric(summarise(filter(df3, year %in% 1985:2005), SLR_m = mean(SLR_m)))
+
+
+df3 <- mutate(df3, SLR_m = SLR_m - avg) %>% 
+  select(-Error) %>% 
+  filter(run_name %in% c("rcp26", "rcp45", "rcp60", "rcp85"))
+
+
+ggplot(df3, aes(x=year, y=SLR_m, color = run_name)) + 
+  geom_line() +
+  geom_point() +
+  geom_segment(aes(x = 2100, y = .55, xend = 2100, yend = 0.85), color = "blue") +
+  geom_segment(aes(x = 2105, y = .8, xend = 2105, yend = 1.25), color = "red") +
+  xlim(2000, 2110)
+# geom_segment(aes(x = 2100, y = .25, xend = 2100, yend = 0.6), color = "black") +
+#  geom_segment(aes(x = 2105, y = .55, xend = 2105, yend = 1.0), color = "blue") 
+
+```
+
+### NOTES
+
+Hector matches observations well but runs higher than IPCC estimates. Especially on the lower end (RCP26).
+RCP45 and RCP60 no real difference between scenarios (a bit confused by why)
+
+Now what:
+1. use Hector as is. we are focusing on showcasing the capability not necessarily results. We could mention that hector runs high and our damages maybe overestimated.  
+2. use temp to SLR conversion that IEc used in the past.  
+3. get BRICK running on my end or IEc's end. I downloaded the code and ran through the tutorial but no tutorial as to how to run a new scenario. I can reach out to my contacts to potentially help with this.  Klaus Keller, Ryan Sriver etc. - are pretty helpful and responsive. I emailed the developer (tony wong) a month ago but no word back - can re-ping him.  
+4. ask PNNL for a quick turn around using the version of coupled Hector BRICK. This was run at PNNL for OTAQ.  
+5. run MAGICC instead of Hector.  
+6. does FAIR calculate SLR? I don't know off hand - need to dig into code.  
+
+
+
+
+
