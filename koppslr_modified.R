@@ -14,6 +14,12 @@
 
 # milimeters
 
+#############################################
+# Something is off with units. Also need to compare to common baseline. 
+# observations mm
+# hector cm
+# semi-emp mm
+
 library(ggplot2)
 library(dplyr)
 library(tidyr)
@@ -101,17 +107,16 @@ rcp26 <- read.csv("sample_outputstream_rcp26.csv", sep = ",", skip = 1) %>%
   select(-component) %>% 
   filter(year > 1849) %>% 
   filter(variable == "slr") %>% 
-  rename("SLR" = "value") %>% 
-  mutate(SLR = SLR*10)
+  rename("SLR" = "value")
 
-df2 <- full_join(df1, rcp26)
+df2 <- full_join(df1, rcp26) 
 
 ggplot(df2, aes(x=year, y=SLR, color = run_name)) + 
   geom_line() +
   geom_point()+
   geom_errorbar(aes(ymin=SLR-Error, ymax=SLR+Error)) +
   xlim(1850,2110)+
- # ylim(-250,250) +
-  geom_segment(aes(x = 2100, y = .55, xend = 2100, yend = 0.85), color = "blue") +
-  geom_segment(aes(x = 2105, y = .8, xend = 2105, yend = 1.25), color = "red") 
+  ylim(-250,250)
+  #geom_segment(aes(x = 2100, y = .55, xend = 2100, yend = 0.85), color = "blue") +
+  #geom_segment(aes(x = 2105, y = .8, xend = 2105, yend = 1.25), color = "red") 
 
