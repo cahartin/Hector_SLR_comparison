@@ -67,11 +67,11 @@ tempscen <- read.csv("sample_outputstream_rcp26.csv", sep = ",", skip = 1) %>%
 
 numyears <- length(tempscen$year)
 
-phi0 <- 0.1 #mm/year: multi-millenial contribution. 
+phi0 <- 0.01 #mm/year: multi-millenial contribution. 
 #Kopp: "order 0.1 mm/y in 2000 CE"
-bscalar <- 0.4 #scalar: sensitivity of sea level to temperature difference
+bscalar <- 0.35 #scalar: sensitivity of sea level to temperature difference
 #Kopp: eyeballing mode from Figure S5 for "a"
-p1 <- 150 #timescale: how quickly does equilibrium temp reach current temp
+p1 <- 140 #timescale: how quickly does equilibrium temp reach current temp
 #Kopp: eyeballing mode from FIgure S5 for "tau"
 p2 <- 300 #timescale: e-folding decay rate for phi 
 #Kopp: eyeballing mode for "tau-c"
