@@ -12,13 +12,8 @@
 # additional edits C. Hartin
 # 5/11/2021
 
-# milimeters
 
 #############################################
-# Something is off with units. Also need to compare to common baseline. 
-# observations mm
-# hector cm
-# semi-emp mm
 
 library(ggplot2)
 library(dplyr)
@@ -55,8 +50,9 @@ sealevelcalc <- function(bscalar, equiltemp, phi, temp)
   return(y1)
 }
 
+####
+# read in the temperature trajectory from Hector rcp26 scenario
 #tempscen <- read.csv("tempexample.csv", header=TRUE)
-# reading in the temperature trajectory from Hector rcp26 scenario
 tempscen <- read.csv("sample_outputstream_rcp26.csv", sep = ",", skip = 1) %>%
   select(-component) %>% 
   filter(year > 1849) %>% 
@@ -69,7 +65,7 @@ numyears <- length(tempscen$year)
 
 phi0 <- 0.01 #mm/year: multi-millenial contribution. 
 #Kopp: "order 0.1 mm/y in 2000 CE"
-bscalar <- 0.35 #scalar: sensitivity of sea level to temperature difference
+bscalar <- 3.5 #scalar: sensitivity of sea level to temperature difference
 #Kopp: eyeballing mode from Figure S5 for "a"
 p1 <- 140 #timescale: how quickly does equilibrium temp reach current temp
 #Kopp: eyeballing mode from FIgure S5 for "tau"
@@ -131,8 +127,6 @@ ggplot(df2, aes(x=year, y=SLR, color = run_name)) +
   geom_point()+
   geom_errorbar(aes(ymin=SLR-Error, ymax=SLR+Error)) +
   xlim(1850,2110)+
-  ylim(-250,250)+
-  ggtitle("SLR relative to 1990 in mm")
-  #geom_segment(aes(x = 2100, y = .55, xend = 2100, yend = 0.85), color = "blue") +
-  #geom_segment(aes(x = 2105, y = .8, xend = 2105, yend = 1.25), color = "red") 
+  ylim(-250,550)+
+  ggtitle("SLR relative to 1990 in mm")  
 
