@@ -1,6 +1,8 @@
 # Step 2 in SLR script
 # Process CMIP data for SLR from
 # https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2020GL092064
+# Data located: 
+# https://data.4tu.nl/articles/dataset/Supporting_data_for_Projecting_Global_Mean_Sea-Level_Change_Using_CMIP6_Models/12958079
 
 # C.Hartin 5/31/2021
 
