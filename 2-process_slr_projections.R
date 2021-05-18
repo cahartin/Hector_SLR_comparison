@@ -10,6 +10,9 @@ library(ncdf4)
 
 year <- 2006:2099
 
+# Could have looped but didnt feel like it. 
+
+# pull out data from nc files for upper, lower and middle ranges
 nc <- nc_open("CMIP_SLR/Data/cmip6_mc_projections/ssp126_GMSLR_mid.nc")
 gmslr_mid <- ncvar_get(nc, var="GMSLR") %>%
   as.data.frame() %>% 

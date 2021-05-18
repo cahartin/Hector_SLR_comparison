@@ -53,7 +53,7 @@ sealevelcalc <- function(bscalar, equiltemp, phi, temp)
 ####
 # read in the temperature trajectory from Hector rcp26 scenario
 #tempscen <- read.csv("tempexample.csv", header=TRUE)
-tempscen <- read.csv("sample_outputstream_rcp26.csv", sep = ",", skip = 1) %>%
+tempscen <- read.csv("Data/sample_outputstream_rcp26.csv", sep = ",", skip = 1) %>%
   select(-component) %>% 
   filter(year > 1849) %>% 
   filter(variable == "Tgav") %>% 
@@ -62,6 +62,8 @@ tempscen <- read.csv("sample_outputstream_rcp26.csv", sep = ",", skip = 1) %>%
 
 
 numyears <- length(tempscen$year)
+
+###### Parameters
 
 phi0 <- 0.01 #mm/year: multi-millenial contribution. 
 #Kopp: "order 0.1 mm/y in 2000 CE"
@@ -73,6 +75,7 @@ p2 <- 300 #timescale: e-folding decay rate for phi
 #Kopp: eyeballing mode for "tau-c"
 equiltemp0 <- tempscen$temperature[1] - 0.5 #initial equiltemp
 
+######
 
 tempscen$equiltemp <- equiltempcalc(equiltemp0, p1, tempscen$temperature)
 tempscen$phi <- phicalc(phi0, p2, numyears)
@@ -84,7 +87,7 @@ tempscen$sealevel <- sealevelcalc(bscalar, tempscen$equiltemp, tempscen$phi,
 #################
 #Read in historical observations (mm)
 
-obs <- read.csv("CSIRO_Recons_gmsl_yr_2015.csv", sep = ",") %>% 
+obs <- read.csv("Data/CSIRO_Recons_gmsl_yr_2015.csv", sep = ",") %>% 
   rename("SLR" = "GMSL..mm.") %>% 
   rename("Error" = "GMSL.uncertainty..mm.") %>% 
   rename("year" = "Time") %>% 
@@ -106,13 +109,13 @@ df1 <- full_join(obs, SM)
 # Import Hector data for comparison
 # cm units convert to mm
 
-rcp26 <- read.csv("sample_outputstream_rcp26.csv", sep = ",", skip = 1) %>%
+rcp26 <- read.csv("Data/sample_outputstream_rcp26.csv", sep = ",", skip = 1) %>%
   select(-component) %>% 
   filter(year > 1849) %>% 
   filter(variable == "slr") %>% 
   rename("SLR" = "value") %>% 
-  mutate(SLR = SLR*10) #convert to mm
-
+  mutate(SLR = SLR*10)  #convert to mm
+  
 #average SLR from 1990 as a baseline
 avg <- as.numeric(summarise(filter(rcp26, year %in% 1990), SLR = mean(SLR)))
 hector <- mutate(rcp26, SLR = SLR - avg)
