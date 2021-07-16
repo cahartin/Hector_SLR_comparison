@@ -104,7 +104,9 @@ se_slr <- rbind(tempscen_rcp26, tempscen_rcp45, tempscen_rcp85) %>%
 ###
 # Run the processed projections
 
-x<- full_join(se_slr, gmslr) 
+x<- full_join(se_slr, gmslr) %>% 
+  filter(run_name %in% c("SE_rcp26", "SE_rcp45", "SE_rcp85", "SSP126_mid", 
+                         "SSP245_mid", "SSP585_mid"))
 
 ggplot(x, aes(year, value, color=run_name)) +
   geom_line() +

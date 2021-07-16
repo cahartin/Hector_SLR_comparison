@@ -4,6 +4,7 @@
 # unclear where to set initial equilibrium temperature...
 # https://www.pnas.org/content/113/11/E1434
 
+#Equation 10
 #dh/dt = b[T(t) -Te(t)]+phi(t)
 #DTe/dt = [T(t)-Te(t)]/p1
 #dphi/dt = -phi/p2
@@ -50,86 +51,103 @@ sealevelcalc <- function(bscalar, equiltemp, phi, temp)
   return(y1)
 }
 
-####
-# read in the temperature trajectory from Hector rcp26 scenario
-#tempscen <- read.csv("tempexample.csv", header=TRUE)
+###### Parameters
+
+phi0 <- 0.1 #mm/year: multi-millenial contribution. 
+#Kopp: "order 0.1 mm/y in 2000 CE"
+bscalar <- 4.0 #scalar: sensitivity of sea level to temperature difference
+#Kopp: eyeballing mode from Figure S5 for "a"
+p1 <- 174 #timescale: how quickly does equilibrium temp reach current temp
+#Kopp: eyeballing mode from FIgure S5 for "tau"
+p2 <- 4175 #timescale: e-folding decay rate for phi 
+#Kopp: eyeballing mode for "tau-c"
+equiltemp0 <- -0.05 # or 0.25
+#tempscen$temperature[1] - 0.5 #initial equiltemp
+
+######
+
+# reading in the temperature trajectory from Hector rcp26, 45, 85 scenarios
+# relative to 2000 baseline
+
 tempscen <- read.csv("Data/sample_outputstream_rcp26.csv", sep = ",", skip = 1) %>%
   select(-component) %>% 
   filter(year > 1849) %>% 
   filter(variable == "Tgav") %>% 
   rename("temperature" = "value") %>% 
-  select(year, temperature)
-
+  select(year, temperature) 
 
 numyears <- length(tempscen$year)
 
-###### Parameters
-
-phi0 <- 0.01 #mm/year: multi-millenial contribution. 
-#Kopp: "order 0.1 mm/y in 2000 CE"
-bscalar <- 3.5 #scalar: sensitivity of sea level to temperature difference
-#Kopp: eyeballing mode from Figure S5 for "a"
-p1 <- 140 #timescale: how quickly does equilibrium temp reach current temp
-#Kopp: eyeballing mode from FIgure S5 for "tau"
-p2 <- 300 #timescale: e-folding decay rate for phi 
-#Kopp: eyeballing mode for "tau-c"
-equiltemp0 <- tempscen$temperature[1] - 0.5 #initial equiltemp
-
-######
 
 tempscen$equiltemp <- equiltempcalc(equiltemp0, p1, tempscen$temperature)
 tempscen$phi <- phicalc(phi0, p2, numyears)
 tempscen$sealevel <- sealevelcalc(bscalar, tempscen$equiltemp, tempscen$phi, 
-                                      tempscen$temperature) 
+                                  tempscen$temperature)
+tempscen_rcp26 <- tempscen %>% 
+  mutate(run_name = "SE_rcp26")
 
+avg <- as.numeric(summarise(filter(tempscen_rcp26, year %in% c(2000)), SLR = mean(sealevel)))
 
+tempscen_rcp26 <- mutate(tempscen_rcp26, SLR = sealevel - avg)
 
-#################
-#Read in historical observations (mm)
-
-obs <- read.csv("Data/CSIRO_Recons_gmsl_yr_2015.csv", sep = ",") %>% 
-  rename("SLR" = "GMSL..mm.") %>% 
-  rename("Error" = "GMSL.uncertainty..mm.") %>% 
-  rename("year" = "Time") %>% 
-  mutate(run_name = "observations")
-
-# combine observations and model output
-semi_emp <- rename(tempscen, "SLR" = "sealevel") %>% # so we can match observations column name
-  mutate(run_name = "semi-empirical") %>% 
-  select(year, SLR, run_name)
-
-#average SLR from 1990 as a baseline
-avg <- as.numeric(summarise(filter(semi_emp, year %in% 1990), SLR = mean(SLR)))
-SM <- mutate(semi_emp, SLR = SLR - avg)
-
-# join together observations and semi_empirical data
-df1 <- full_join(obs, SM)
-
-
-# Import Hector data for comparison
-# cm units convert to mm
-
-rcp26 <- read.csv("Data/sample_outputstream_rcp26.csv", sep = ",", skip = 1) %>%
+#### 
+tempscen <- read.csv("Data/sample_outputstream_rcp45.csv", sep = ",", skip = 1) %>%
   select(-component) %>% 
   filter(year > 1849) %>% 
-  filter(variable == "slr") %>% 
-  rename("SLR" = "value") %>% 
-  mutate(SLR = SLR*10)  #convert to mm
-  
-#average SLR from 1990 as a baseline
-avg <- as.numeric(summarise(filter(rcp26, year %in% 1990), SLR = mean(SLR)))
-hector <- mutate(rcp26, SLR = SLR - avg)
+  filter(variable == "Tgav") %>% 
+  rename("temperature" = "value") %>% 
+  select(year, temperature) 
+
+tempscen$equiltemp <- equiltempcalc(equiltemp0, p1, tempscen$temperature)
+tempscen$phi <- phicalc(phi0, p2, numyears)
+tempscen$sealevel <- sealevelcalc(bscalar, tempscen$equiltemp, tempscen$phi, 
+                                  tempscen$temperature)
+tempscen_rcp45 <- tempscen %>% 
+  mutate(run_name = "SE_rcp45")
+
+avg <- as.numeric(summarise(filter(tempscen_rcp45, year %in% c(2000)), SLR = mean(sealevel)))
+
+tempscen_rcp45 <- mutate(tempscen_rcp45, SLR = sealevel - avg)
 
 
-###### join in the dataframes (semi-emp, hector, observations)
-df2 <- full_join(df1, hector) %>% 
-  select(-variable, -spinup, -units)
+####
+tempscen <- read.csv("Data/sample_outputstream_rcp85.csv", sep = ",", skip = 1) %>%
+  select(-component) %>% 
+  filter(year > 1849) %>% 
+  filter(variable == "Tgav") %>% 
+  rename("temperature" = "value") %>% 
+  select(year, temperature) 
 
-ggplot(df2, aes(x=year, y=SLR, color = run_name)) + 
+tempscen$equiltemp <- equiltempcalc(equiltemp0, p1, tempscen$temperature)
+tempscen$phi <- phicalc(phi0, p2, numyears)
+tempscen$sealevel <- sealevelcalc(bscalar, tempscen$equiltemp, tempscen$phi, 
+                                  tempscen$temperature)
+tempscen_rcp85 <- tempscen %>% 
+  mutate(run_name = "SE_rcp85")
+
+avg <- as.numeric(summarise(filter(tempscen_rcp85, year %in% c(2000)), SLR = mean(sealevel)))
+
+tempscen_rcp85 <- mutate(tempscen_rcp85, SLR = sealevel - avg)
+
+se_slr <- rbind(tempscen_rcp26, tempscen_rcp45, tempscen_rcp85) %>% 
+  select(-equiltemp, -phi) %>% 
+  rename("value" = "SLR") %>% 
+  mutate(value = value/10) %>% 
+  filter(year<2100) %>% 
+  mutate(model = "SE")
+
+ggplot(se_slr, aes(year, value, color=run_name)) +
   geom_line() +
-  geom_point()+
-  geom_errorbar(aes(ymin=SLR-Error, ymax=SLR+Error)) +
-  xlim(1850,2110)+
-  ylim(-250,550)+
-  ggtitle("SLR relative to 1990 in mm")  
+  geom_point() +
+  geom_segment(aes(x = 2103, y = 25, xend = 2103, yend = 59), color = "red", size = 1.5) +
+  geom_point(aes(x = 2103, y = 38), color = "red", shape = 1, size = 3) +
+  
+  geom_segment(aes(x = 2106, y = 34, xend = 2106, yend = 81), color = "light green", size = 1.5) +
+  geom_point(aes(x = 2106, y = 51), color = "light green", shape = 3, size = 3) +
+  
+  geom_segment(aes(x = 2109, y = 52, xend = 2109, yend = 121), color = "blue", size = 1.5) +
+  geom_point(aes(x = 2109, y = 75), shape = 2, color = "blue", size = 3) +
+  xlim(1850,2110) +
+  ylab("gmslr in cm") +
+  ggtitle("GSL comparison to Kopp et al 2016")
 
