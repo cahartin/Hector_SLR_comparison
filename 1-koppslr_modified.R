@@ -53,7 +53,7 @@ sealevelcalc <- function(bscalar, equiltemp, phi, temp)
 
 ###### Parameters
 
-phi0 <- 0.1 #mm/year: multi-millenial contribution. 
+phi0 <- 0.14 #mm/year: multi-millenial contribution. 
 #Kopp: "order 0.1 mm/y in 2000 CE"
 bscalar <- 4.0 #scalar: sensitivity of sea level to temperature difference
 #Kopp: eyeballing mode from Figure S5 for "a"
@@ -61,7 +61,7 @@ p1 <- 174 #timescale: how quickly does equilibrium temp reach current temp
 #Kopp: eyeballing mode from FIgure S5 for "tau"
 p2 <- 4175 #timescale: e-folding decay rate for phi 
 #Kopp: eyeballing mode for "tau-c"
-equiltemp0 <- -0.05 # or 0.25
+equiltemp0 <-  -0.05 # or 0.25
 #tempscen$temperature[1] - 0.5 #initial equiltemp
 
 ######
@@ -150,4 +150,33 @@ ggplot(se_slr, aes(year, value, color=run_name)) +
   xlim(1850,2110) +
   ylab("gmslr in cm") +
   ggtitle("GSL comparison to Kopp et al 2016")
+
+
+#############################
+# What does it look like when i read in a temp time series that is realtive to 1986-2005?
+tempscen <- read.csv("C:/Users/chartin/OneDrive - Environmental Protection Agency (EPA)/Documents/GitHub/hector//output/Hector_GCAMv5.3_ref.csv", 
+  sep = ",", skip = 2) %>%
+  filter(variable == "Tgav") %>% 
+  filter(parameter_value == "ECS_3") %>% 
+  rename("temperature" = "value") %>% 
+  select(year, temperature) 
+
+
+numyears <- length(tempscen$year)
+
+
+tempscen$equiltemp <- equiltempcalc(equiltemp0, p1, tempscen$temperature)
+tempscen$phi <- phicalc(phi0, p2, numyears)
+tempscen$sealevel <- sealevelcalc(bscalar, tempscen$equiltemp, tempscen$phi, 
+                                  tempscen$temperature)
+
+tempscen_gcam <- tempscen %>%  mutate(sealevel = sealevel/10)
+
+avg <- as.numeric(summarise(filter(tempscen_gcam, year %in% c(1986:2005)), SLR = mean(sealevel)))
+
+tempscen_gcam <- mutate(tempscen_gcam, SLR = sealevel - avg)
+
+ggplot(tempscen_gcam, aes(year, SLR)) + 
+  geom_point() + 
+  ggtitle("GCAM reference run (1986-2005) SLR in cm T0 = -0.05")
 
